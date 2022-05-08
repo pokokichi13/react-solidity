@@ -1,0 +1,55 @@
+雛形作成
+$ npx create-react-app simplestore
+
+メタマスクなど、ブラウザのRPC インターフェースに干渉するためのモジュールをインストールします。
+$ npm install ethers
+
+一階層下のコンポーネントでコントラクトに接続
+
+今回のゴール
+Ganache にデプロイしたシンプルなコントラクトを実行したい
+
+ざっくり手順
+1. ネットワークに接続します
+2. コントラクトに接続します
+3. コントラクトを実行します
+
+必要なもの
+今回は、ブラウザからRPC クライアント(ウォレット)を介してネットワーク接続、およびコントラクトを実行します。
+ethers モジュールを使用し、ブラウザのウォレットと連携します。大きく分けて三つの要素があり、それらを使用しコントラクトを実行します。
+Provider - EVM ネットワーク接続のクラスです。ネットワークにあるコントラクトやステート情報取得に使用します。
+Signer - 署名のためのクラスです。Private キーにアクセスがあります。よってガス代やETH 送信時に使用されます。
+Contract - チェーン上のコントラクトをインスタンス化したものです。contract.getName() など、コントラクトの関数を呼び出すことが可能です。
+
+それぞれReact のState を利用し、以下のように定義します。
+    const [provider, setProvider] = useState(null);
+	const [signer, setSigner] = useState(null);
+	const [contract, setContract] = useState(null);
+
+1. ネットワークに接続します
+まずウォレットがブラウザに入っているか確認します。
+if (window.ethereum) こんな感じ
+
+ここからネットワークに接続(Provider)、およびSigner を定義します。
+新規ethers インスタンスを作成し、それらをステートに入れます。
+https://docs.ethers.io/v5/api/providers/other/#Web3Provider
+    let tempProvider = new ethers.providers.Web3Provider(window.ethereum);
+    setProvider(tempProvider);
+
+https://docs.ethers.io/v5/api/providers/jsonrpc-provider/#JsonRpcProvider-getSigner
+    let tempSigner = tempProvider.getSigner();
+    setSigner(tempSigner);
+
+2. コントラクトに接続します
+コントラクトのインスタンス作成には三つの要素が必要です。コントラクトのアドレス、ABI とSigner です。
+https://docs.ethers.io/v5/api/contract/contract/
+    let tempContract = new ethers.Contract(contractAddress, SimpleStorage_abi, tempSigner);
+    setContract(tempContract);
+
+3. コントラクトを実行します
+これでコントラクトを実行可能です。中にある関数は直接実行可能です。
+以下のような関数がコントラクトにある場合
+function retrieve() public view returns (uint256){return number;}
+
+contract.retrieve();
+で取得可能です。気をつける点としては、uint を返す関数はデフォルトでBigNumber を返すので、toNumber() を実行する必要があります。
